@@ -19,8 +19,9 @@
       justify-content: center;
       background-size: cover;
       background-image: url("https://www.psdgraphics.com/wp-content/uploads/2022/01/white-math-paper-texture.jpg");
-      background-position: center center;
+      background-position: center;
       overflow: hidden;
+      user-select: none;
     }
 
     .paper {
@@ -32,6 +33,7 @@
       box-shadow: 1px 15px 20px rgba(0, 0, 0, 0.5);
       position: absolute;
       max-width: 90vw;
+      transform-origin: center center;
     }
 
     .paper.heart {
@@ -53,6 +55,7 @@
       max-height: 150px;
       width: 100%;
       user-select: none;
+      pointer-events: none;
     }
 
     .paper.heart::after {
@@ -131,27 +134,48 @@
       this.velY = 0;
       this.rotation = Math.random() * 30 - 15;
 
+      this.longPressTimeout = null;
+
       this.init();
     }
 
     init() {
-      // Mouse Support
       document.addEventListener('mousemove', (e) => this.move(e.clientX, e.clientY));
-      this.paper.addEventListener('mousedown', (e) => this.start(e.clientX, e.clientY, e.button));
+      this.paper.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        this.start(e.clientX, e.clientY, e.button);
+      });
       window.addEventListener('mouseup', () => this.end());
 
-      // Touch Support
+      // Touch
       document.addEventListener('touchmove', (e) => {
-        const touch = e.touches[0];
-        this.move(touch.clientX, touch.clientY);
+        if (e.touches.length > 0) {
+          const touch = e.touches[0];
+          this.move(touch.clientX, touch.clientY);
+        }
       }, { passive: false });
 
       this.paper.addEventListener('touchstart', (e) => {
-        const touch = e.touches[0];
-        this.start(touch.clientX, touch.clientY, 0);
+        if (e.touches.length > 0) {
+          const touch = e.touches[0];
+          this.start(touch.clientX, touch.clientY, 0);
+
+          // Enable rotate mode on long-press (500ms)
+          this.longPressTimeout = setTimeout(() => {
+            this.rotating = true;
+          }, 500);
+        }
       });
 
-      window.addEventListener('touchend', () => this.end());
+      this.paper.addEventListener('touchend', () => {
+        clearTimeout(this.longPressTimeout);
+        this.end();
+      });
+
+      this.paper.addEventListener('touchcancel', () => {
+        clearTimeout(this.longPressTimeout);
+        this.end();
+      });
     }
 
     move(x, y) {
